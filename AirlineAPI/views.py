@@ -15,7 +15,7 @@ def list_flights(request):
     departure_date = data.get('dateOfDeparture', None)
     city_of_departure = data.get('cityOfDeparture', None)
     city_of_arrival = data.get('cityOfArrival', None)
-    available_seats = data.get('noOfSeats', None)
+    available_seats = data.get('totalNoOfTickets', None)
 
     flights = Flight.objects.all()
     if departure_date:
@@ -36,19 +36,17 @@ def list_flights(request):
         flightDict = {        
             'airline': flight.airline,
             'dateOfDeparture': flight.dateOfDeparture,
-            'cityOfDeparture': flight.departure_airport.airport_id,
-            'cityOfArrival': flight.arrival_airport.airport_id,
             'timeOfDeparture': flight.etd,
             'timeOfArrival': flight.eta,
             'seats':{
-                'noOfEconomySeats': flight.available_seats_economy,
-                'noOfBusinessSeats': flight.available_seats_business,
-                'noOfFirstClassSeats': flight.available_seats_first,
+                'noOfEconomy': flight.available_seats_economy,
+                'noOfBusiness': flight.available_seats_business,
+                'noOfFirstClass': flight.available_seats_first,
             },
             'price':{
-                'priceOfEconomySeats': flight.price.economy_price,
-                'priceOfBusinessSeats': flight.price.business_price,
-                'priceOfFirstClassSeats': flight.price.first_class_price,
+                'priceOfEconomy': flight.price.economy_price,
+                'priceOfBusiness': flight.price.business_price,
+                'priceOfFirstClass': flight.price.first_class_price,
             }
         }
         flight_id = '03' + str(flight.flight_id)
@@ -63,7 +61,7 @@ def book_flight(request):
     data = json.loads(request.body)
 
     flight_id = data.get('flightID')
-    no_of_seats = data.get('noOfSeats', 0)
+    no_of_seats = data.get('seats', 0)
     no_of_seats_economy = no_of_seats.get('noOfEconomy', 0)
     no_of_seats_business = no_of_seats.get('noOfBusiness', 0)
     no_of_seats_first = no_of_seats.get('noOfFirstClass', 0)
@@ -100,14 +98,14 @@ def book_flight(request):
     flight.save()
 
     response_data = {
-        'reservationID': reservation.reservation_id
+        'bookingID': reservation.reservation_id
     }
     return JsonResponse(response_data)
 
 @api_view(['POST'])
 def cancel_reservation(request):
     data = json.loads(request.body)
-    reservation_id = data.get('reservationID')
+    reservation_id = data.get('bookingID')
     reservation = get_object_or_404(Reservation, reservation_id=reservation_id)
     reservation.delete()
 
@@ -123,7 +121,7 @@ def cancel_reservation(request):
 @api_view(['POST'])
 def confirm_reservation(request):
     data = json.loads(request.body)
-    reservation_id = data.get('reservationID')
+    reservation_id = data.get('bookingID')
     reservation = get_object_or_404(Reservation, reservation_id=reservation_id)
     reservation.confirmed_status = True
     reservation.save()
