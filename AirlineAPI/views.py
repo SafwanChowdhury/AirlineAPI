@@ -172,4 +172,9 @@ def cancel_old_reservations():
     old_reservations = Reservation.objects.filter(time_started__lte=fifteen_minutes_ago)
     for reservation in old_reservations:
         if reservation.confirmed_status == False:
+            flight = reservation.flight
+            flight.available_seats_economy += reservation.num_seats_economy
+            flight.available_seats_business += reservation.num_seats_business
+            flight.available_seats_first += reservation.num_seats_first
+            flight.save()
             reservation.delete()
