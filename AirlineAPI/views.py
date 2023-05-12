@@ -79,7 +79,7 @@ def book_flight(request):
     if (no_of_seats_economy != "" and no_of_seats_economy is not None and flight.available_seats_economy is not None and flight.available_seats_economy < no_of_seats_economy) or \
     (no_of_seats_business != "" and no_of_seats_business is not None and flight.available_seats_business is not None and flight.available_seats_business < no_of_seats_business) or \
     (no_of_seats_first != "" and no_of_seats_first is not None and flight.available_seats_first is not None and flight.available_seats_first < no_of_seats_first):
-        return JsonResponse({'message': 'Not enough seats available for this flight.'}, status=400)
+        return JsonResponse({"message": "Not enough seats available for this flight."}, status=400)
 
     
     if no_of_seats_economy is None or no_of_seats_economy == "":
@@ -137,13 +137,13 @@ def confirm_reservation(request):
     calculated_price = (seat_price_economy * reservation.num_seats_economy) + (seat_price_business * reservation.num_seats_business) + (seat_price_first * reservation.num_seats_first)
 
     if calculated_price != total_price:
-        return JsonResponse({'message': 'Price does not match.'}, status=400)
+        return JsonResponse({"message": "Price does not match."}, status=400)
     
     reservation.confirmed_status = True
     reservation.save()
 
     status = (calculated_price == total_price)
-    response_data = {'status': 'success' if status else 'failed'}
+    response_data = {"status": "success" if status else "failed"}
     return JsonResponse(response_data)
 
 
@@ -163,7 +163,7 @@ def cancel_reservation(request):
     flight.save()
 
     status = True
-    response_data = {'status': 'success' if status else 'failed'}
+    response_data = {"status": "success" if status else "failed"}
     return JsonResponse(response_data)
 
 def cancel_old_reservations():
