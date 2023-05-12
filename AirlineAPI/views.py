@@ -149,6 +149,7 @@ def confirm_reservation(request):
 
 @api_view(['POST'])
 def cancel_reservation(request):
+    cancel_old_reservations()
     data = json.loads(request.body)
     reservation_id = data.get('bookingID')
     reservation_id = reservation_id[2:]
