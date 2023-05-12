@@ -33,6 +33,9 @@ def list_flights(request):
 
     flightsList = {}
     for flight in flights:
+        price_of_economy = '{:.2f}'.format(flight.price.economy_price)
+        price_of_business = '{:.2f}'.format(flight.price.business_price)
+        price_of_first_class = '{:.2f}'.format(flight.price.first_class_price)
         flightDict = {        
             'airline': flight.airline,
             'cityOfDeparture': flight.departure_airport.airport_id,
@@ -46,10 +49,10 @@ def list_flights(request):
                 'noOfBusiness': flight.available_seats_business,
                 'noOfFirstClass': flight.available_seats_first,
             },
-            'price':{
-                'priceOfEconomy': flight.price.economy_price,
-                'priceOfBusiness': flight.price.business_price,
-                'priceOfFirstClass': flight.price.first_class_price,
+            'price': {
+            'priceOfEconomy': price_of_economy,
+            'priceOfBusiness': price_of_business,
+            'priceOfFirstClass': price_of_first_class,
             }
         }
         flight_id = '03' + str(flight.flight_id)
@@ -71,8 +74,17 @@ def book_flight(request):
 
 
     flight = get_object_or_404(Flight, flight_id=flight_id)
-    if (flight.available_seats_economy < no_of_seats_economy) or (flight.available_seats_business < no_of_seats_business) or (flight.available_seats_first < no_of_seats_first):
+    if (no_of_seats_economy is not None and flight.available_seats_economy is not None and flight.available_seats_economy < no_of_seats_economy) or \
+    (no_of_seats_business is not None and flight.available_seats_business is not None and flight.available_seats_business < no_of_seats_business) or \
+    (no_of_seats_first is not None and flight.available_seats_first is not None and flight.available_seats_first < no_of_seats_first):
         return JsonResponse({'message': 'Not enough seats available for this flight.'}, status=400)
+    
+    if no_of_seats_economy is None:
+        no_of_seats_economy = 0
+    if no_of_seats_business is None:
+        no_of_seats_business = 0
+    if no_of_seats_first is None:
+        no_of_seats_first = 0
 
     passenger_id=data.get('email')
     
