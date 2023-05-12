@@ -6,6 +6,9 @@ from AirlineAPI.models import Location, Passenger, Reservation, Price, Plane, Fl
 import random
 from FlightRadar24.api import FlightRadar24API
 
+#exec(open('populate_db.py').read())
+
+
 current_date = date.today()  
 fr_api = FlightRadar24API()
 fake = Faker()
@@ -32,9 +35,9 @@ prices = []
 for i in range(10):
     price = Price.objects.create(
         price_id=i+1,
-        economy_price=random.uniform(100, 500),
-        business_price=random.uniform(500, 1000),
-        first_class_price=random.uniform(1000, 2000),
+        economy_price = round(random.uniform(100, 500), 2),
+        business_price = round(random.uniform(500, 1000), 2),
+        first_class_price = round(random.uniform(1000, 2000), 2),
         currency='USD'
     )
     prices.append(price)

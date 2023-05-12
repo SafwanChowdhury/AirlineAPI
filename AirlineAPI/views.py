@@ -2,14 +2,17 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import JSONParser
-from datetime import datetime
+from datetime import timedelta
 from .models import Flight, Passenger, Reservation
 from django.db import models
+from django.utils import timezone
+
 import json
 
 @api_view(['GET'])
 @parser_classes([JSONParser])
 def list_flights(request):
+    cancel_old_reservations()
     data = JSONParser().parse(request)
 
     departure_date = data.get('dateOfDeparture', '')
@@ -33,9 +36,6 @@ def list_flights(request):
 
     flightsList = {}
     for flight in flights:
-        price_of_economy = '{:.2f}'.format(flight.price.economy_price)
-        price_of_business = '{:.2f}'.format(flight.price.business_price)
-        price_of_first_class = '{:.2f}'.format(flight.price.first_class_price)
         flightDict = {        
             'airline': flight.airline,
             'cityOfDeparture': flight.departure_airport.airport_id,
@@ -50,9 +50,9 @@ def list_flights(request):
                 'noOfFirstClass': flight.available_seats_first,
             },
             'price': {
-            'priceOfEconomy': price_of_economy,
-            'priceOfBusiness': price_of_business,
-            'priceOfFirstClass': price_of_first_class,
+            'priceOfEconomy': flight.price.economy_price,
+            'priceOfBusiness': flight.price.business_price,
+            'priceOfFirstClass': flight.price.first_class_price,
             }
         }
         flight_id = '03' + str(flight.flight_id)
@@ -64,6 +64,7 @@ def list_flights(request):
 
 @api_view(['POST'])
 def book_flight(request):
+    cancel_old_reservations()
     data = json.loads(request.body)
     flight_id = data.get('flightID')
     flight_id = flight_id[2:]
@@ -74,16 +75,18 @@ def book_flight(request):
 
 
     flight = get_object_or_404(Flight, flight_id=flight_id)
-    if (no_of_seats_economy is not None and flight.available_seats_economy is not None and flight.available_seats_economy < no_of_seats_economy) or \
-    (no_of_seats_business is not None and flight.available_seats_business is not None and flight.available_seats_business < no_of_seats_business) or \
-    (no_of_seats_first is not None and flight.available_seats_first is not None and flight.available_seats_first < no_of_seats_first):
+
+    if (no_of_seats_economy != "" and no_of_seats_economy is not None and flight.available_seats_economy is not None and flight.available_seats_economy < no_of_seats_economy) or \
+    (no_of_seats_business != "" and no_of_seats_business is not None and flight.available_seats_business is not None and flight.available_seats_business < no_of_seats_business) or \
+    (no_of_seats_first != "" and no_of_seats_first is not None and flight.available_seats_first is not None and flight.available_seats_first < no_of_seats_first):
         return JsonResponse({'message': 'Not enough seats available for this flight.'}, status=400)
+
     
-    if no_of_seats_economy is None:
+    if no_of_seats_economy is None or no_of_seats_economy == "":
         no_of_seats_economy = 0
-    if no_of_seats_business is None:
+    if no_of_seats_business is None or no_of_seats_business == "":
         no_of_seats_business = 0
-    if no_of_seats_first is None:
+    if no_of_seats_first is None or no_of_seats_first == "":
         no_of_seats_first = 0
 
     passenger_id=data.get('email')
@@ -103,7 +106,7 @@ def book_flight(request):
         num_seats_business=no_of_seats_business,
         num_seats_first=no_of_seats_first,
         confirmed_status=False,
-        time_started=datetime.now(),
+        time_started=timezone.now(),
     )
 
     flight.available_seats_economy -= no_of_seats_economy
@@ -111,16 +114,44 @@ def book_flight(request):
     flight.available_seats_first -= no_of_seats_first
     flight.passengers += (no_of_seats_economy + no_of_seats_business + no_of_seats_first)
     flight.save()
+    reservation_id = '03' + str(reservation.reservation_id)
 
     response_data = {
-        'bookingID': reservation.reservation_id
+        'bookingID': reservation_id
     }
     return JsonResponse(response_data)
+
+@api_view(['POST'])
+def confirm_reservation(request):
+    cancel_old_reservations()
+    data = json.loads(request.body)
+    reservation_id = data.get('bookingID')
+    reservation_id = reservation_id[2:]
+    total_price = data.get('price')
+    reservation = get_object_or_404(Reservation, reservation_id=reservation_id)
+
+    flight = reservation.flight
+    seat_price_economy = flight.price.economy_price
+    seat_price_business = flight.price.business_price
+    seat_price_first = flight.price.first_class_price
+    calculated_price = (seat_price_economy * reservation.num_seats_economy) + (seat_price_business * reservation.num_seats_business) + (seat_price_first * reservation.num_seats_first)
+
+    if calculated_price != total_price:
+        return JsonResponse({'message': 'Price does not match.'}, status=400)
+    
+    reservation.confirmed_status = True
+    reservation.save()
+
+    status = (calculated_price == total_price)
+    response_data = {'status': 'success' if status else 'failed'}
+    return JsonResponse(response_data)
+
 
 @api_view(['POST'])
 def cancel_reservation(request):
     data = json.loads(request.body)
     reservation_id = data.get('bookingID')
+    reservation_id = reservation_id[2:]
     reservation = get_object_or_404(Reservation, reservation_id=reservation_id)
     reservation.delete()
 
@@ -130,16 +161,13 @@ def cancel_reservation(request):
     flight.available_seats_first += reservation.num_seats_first
     flight.save()
 
-    response_data = {'status': True}
+    status = True
+    response_data = {'status': 'success' if status else 'failed'}
     return JsonResponse(response_data)
 
-@api_view(['POST'])
-def confirm_reservation(request):
-    data = json.loads(request.body)
-    reservation_id = data.get('bookingID')
-    reservation = get_object_or_404(Reservation, reservation_id=reservation_id)
-    reservation.confirmed_status = True
-    reservation.save()
-
-    response_data = {'status': True}
-    return JsonResponse(response_data)
+def cancel_old_reservations():
+    current_time = timezone.now()
+    fifteen_minutes_ago = current_time - timedelta(minutes=15)
+    old_reservations = Reservation.objects.filter(time_started__lte=fifteen_minutes_ago)
+    for reservation in old_reservations:
+        reservation.delete()

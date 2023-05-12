@@ -12,5 +12,7 @@ urlpatterns = [
     # Endpoint to cancel a reservation
     path('airline/cancel_reservation', views.cancel_reservation, name='cancel_reservation'),
 
+    path('airline/cancel_booking', views.cancel_reservation, name='cancel_reservation'),
+
     path('airline/confirm_booking', views.confirm_reservation, name='confirm_reservation'),
 ]
