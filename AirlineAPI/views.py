@@ -171,4 +171,5 @@ def cancel_old_reservations():
     fifteen_minutes_ago = current_time - timedelta(minutes=15)
     old_reservations = Reservation.objects.filter(time_started__lte=fifteen_minutes_ago)
     for reservation in old_reservations:
-        reservation.delete()
+        if reservation.confirmed_status == False:
+            reservation.delete()
