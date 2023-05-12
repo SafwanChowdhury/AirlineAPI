@@ -44,18 +44,18 @@ planes = []
 for i in range(10):
     plane = Plane.objects.create(
         plane_id=i+1,
-        num_economy_seats=random.randint(100, 200),
-        num_business_seats=random.randint(20, 40),
-        num_first_class_seats=random.randint(10, 20)
+        num_economy_seats=random.randint(100, 400),
+        num_business_seats=random.randint(20, 100),
+        num_first_class_seats=random.randint(5, 20)
     )
     planes.append(plane)
 
 # Create flights with real-world data
 for i, flight_info in enumerate(flights_info):
     try:
+        print("Processing: ", flight_info.number)
         details = fr_api.get_flight_details(flight_info.id)
         flight_info.set_flight_details(details)
-        
         duration = int(flight_info.time_details['historical']['flighttime'])
         arrival = fr_api.get_airport(flight_info.destination_airport_icao)
         departure = fr_api.get_airport(flight_info.origin_airport_icao)

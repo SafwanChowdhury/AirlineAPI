@@ -35,6 +35,9 @@ def list_flights(request):
     for flight in flights:
         flightDict = {        
             'airline': flight.airline,
+            'cityOfDeparture': flight.departure_airport.airport_id,
+            'cityOfArrival': flight.arrival_airport.airport_id,
+            'flightDuration': flight.flight_duration,
             'dateOfDeparture': flight.dateOfDeparture,
             'timeOfDeparture': flight.etd,
             'timeOfArrival': flight.eta,
