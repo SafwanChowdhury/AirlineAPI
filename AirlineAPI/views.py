@@ -12,10 +12,10 @@ import json
 def list_flights(request):
     data = JSONParser().parse(request)
 
-    departure_date = data.get('dateOfDeparture', None)
-    city_of_departure = data.get('cityOfDeparture', None)
-    city_of_arrival = data.get('cityOfArrival', None)
-    available_seats = data.get('totalNoOfTickets', None)
+    departure_date = data.get('dateOfDeparture', '')
+    city_of_departure = data.get('cityOfDeparture', '')
+    city_of_arrival = data.get('cityOfArrival', '')
+    available_seats = data.get('totalNoOfTickets', '')
 
     flights = Flight.objects.all()
     if departure_date:
@@ -62,8 +62,8 @@ def list_flights(request):
 @api_view(['POST'])
 def book_flight(request):
     data = json.loads(request.body)
-
     flight_id = data.get('flightID')
+    flight_id = flight_id[2:]
     no_of_seats = data.get('seats', 0)
     no_of_seats_economy = no_of_seats.get('noOfEconomy', 0)
     no_of_seats_business = no_of_seats.get('noOfBusiness', 0)
