@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, parser_classes
-from rest_framework.parsers import JSONParser, ParseError
+from rest_framework.parsers import JSONParser
 from datetime import timedelta
 from .models import Flight, Passenger, Reservation
 from django.db import models
@@ -13,17 +13,12 @@ import json
 @parser_classes([JSONParser])
 def list_flights(request):
     cancel_old_reservations()
-    
-    data = {}
-    try:
-        data = JSONParser().parse(request)
-    except ParseError:
-        pass  # Allow data to remain empty on parsing error
+    data = JSONParser().parse(request)
 
-    departure_date = data.get('dateOfDeparture', None)
-    city_of_departure = data.get('cityOfDeparture', None)
-    city_of_arrival = data.get('cityOfArrival', None)
-    available_seats = data.get('totalNoOfTickets', None)
+    departure_date = data.get('dateOfDeparture', '')
+    city_of_departure = data.get('cityOfDeparture', '')
+    city_of_arrival = data.get('cityOfArrival', '')
+    available_seats = data.get('totalNoOfTickets', '')
 
     flights = Flight.objects.all()
     if departure_date:
@@ -36,6 +31,8 @@ def list_flights(request):
     # Filter flights where combined available seats are greater than noOfSeats
     if available_seats:
         flights = flights.annotate(total_seats=models.F('available_seats_economy') + models.F('available_seats_business') + models.F('available_seats_first')).filter(total_seats__gt=available_seats)
+
+
 
     flightsList = {}
     for flight in flights:
@@ -60,12 +57,10 @@ def list_flights(request):
         }
         flight_id = '03' + str(flight.flight_id)
         flightsList[flight_id] = flightDict
-
-    if not flightsList:
+    if not flights.exists():
         return JsonResponse({"message": "No Flights Available"}, safe=False)
-
+    
     return JsonResponse(flightsList, safe=False)
-
 
 @api_view(['POST'])
 def book_flight(request):
